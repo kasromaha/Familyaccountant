@@ -32,7 +32,7 @@ async def send_summary() -> None:
     _daily_total = 0
 
 
-async def main() -> None:
+def main() -> None:
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not token:
         raise RuntimeError("TELEGRAM_BOT_TOKEN is not set")
@@ -48,10 +48,8 @@ async def main() -> None:
     scheduler.add_job(send_summary, "cron", hour=23, minute=59)
     scheduler.start()
 
-    await application.run_polling()
+    application.run_polling()
 
 
 if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())
+    main()
