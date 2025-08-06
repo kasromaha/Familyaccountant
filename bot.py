@@ -2,12 +2,14 @@ import os
 import re
 from collections import defaultdict
 from datetime import datetime, date
+from zoneinfo import ZoneInfo
+
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 
 # Totals keyed by message date
-LOCAL_TZ = datetime.now().astimezone().tzinfo
+LOCAL_TZ = ZoneInfo("Europe/Moscow")
 _daily_totals: dict[date, int] = defaultdict(int)
 # Channel ID where summary will be posted
 CHANNEL_ID = int(os.getenv("TARGET_CHAT_ID", "0"))
@@ -48,7 +50,7 @@ def main() -> None:
     )
 
     scheduler = AsyncIOScheduler(timezone=LOCAL_TZ)
-    scheduler.add_job(send_summary, "cron", hour=14, minute=53)
+    scheduler.add_job(send_summary, "cron", hour=18, minute=5)
     scheduler.start()
 
     application.run_polling()
