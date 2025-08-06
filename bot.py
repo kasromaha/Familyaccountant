@@ -101,10 +101,9 @@ def main() -> None:
 
     application.post_init = setup_pg_pool
 
-    send_summary()
 
     scheduler = AsyncIOScheduler(timezone=LOCAL_TZ)
-    scheduler.add_job(send_summary, "cron", hour=21, minute=27)
+    scheduler.add_job(send_summary, "cron", hour=23, minute=59)
     scheduler.start()
 
     application.run_polling()
