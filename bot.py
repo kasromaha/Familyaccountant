@@ -17,7 +17,7 @@ CHANNEL_ID = int(os.getenv("TARGET_CHAT_ID", "0"))
 
 async def handle_message(update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.channel_post or not update.channel_post.text:
-        bot.send_message(CHANNEL_ID, f"Сообщение не содержит текста или не из channel_post")
+        await context.bot.send_message(CHANNEL_ID, f"Сообщение не содержит текста или не из channel_post")
         return
 
     text = update.channel_post.text.strip()
@@ -30,11 +30,11 @@ async def handle_message(update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if sign == '-':
             amount = -amount
         msg_date = update.channel_post.date.astimezone(LOCAL_TZ).date()
-        bot.send_message(CHANNEL_ID, f"Дата сообщения: {msg_date}, Сумма: {amount}")
+        await context.bot.send_message(CHANNEL_ID, f"Дата сообщения: {msg_date}, Сумма: {amount}")
         _daily_totals[msg_date] += amount
-        bot.send_message(CHANNEL_ID, f"Текущий итог на {msg_date}: {_daily_totals[msg_date]}")
+        await context.bot.send_message(CHANNEL_ID, f"Текущий итог на {msg_date}: {_daily_totals[msg_date]}")
     else:
-        bot.send_message(CHANNEL_ID, f"Сообщение не попало под шаблон: ([+-])(\\d+)")
+        await context.bot.send_message(CHANNEL_ID, f"Сообщение не попало под шаблон: ([+-])(\\d+)")
 
 
 async def send_summary() -> None:
@@ -57,7 +57,7 @@ def main() -> None:
     )
 
     scheduler = AsyncIOScheduler(timezone=LOCAL_TZ)
-    scheduler.add_job(send_summary, "cron", hour=19, minute=2)
+    scheduler.add_job(send_summary, "cron", hour=19, minute=17)
     scheduler.start()
 
     application.run_polling()
