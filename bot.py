@@ -1,8 +1,11 @@
 diff --git a//dev/null b/bot.py
-index 0000000000000000000000000000000000000000..4013a37b5a4d624b3e5e25abbb575d0ee0913bcf 100644
+index 0000000000000000000000000000000000000000..07564d044179c74dd933fbd8592dbe1734184361 100644
 --- a//dev/null
 +++ b/bot.py
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,61 @@
++#!/usr/bin/env python3
++"""Telegram bot that summarizes daily income and expenses."""
++
 +import os
 +import re
 +from collections import defaultdict
@@ -53,7 +56,7 @@ index 0000000000000000000000000000000000000000..4013a37b5a4d624b3e5e25abbb575d0e
 +    )
 +
 +    scheduler = AsyncIOScheduler(timezone=LOCAL_TZ)
-+    scheduler.add_job(send_summary, "cron", hour=14, minute=34)
++    scheduler.add_job(send_summary, "cron", hour=14, minute=38)
 +    scheduler.start()
 +
 +    application.run_polling()
