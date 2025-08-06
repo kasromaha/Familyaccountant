@@ -7,6 +7,13 @@ from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,  # Можно поменять на DEBUG для подробных логов
+    format="%(asctime)s %(levelname)s %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 # Totals keyed by message date
 LOCAL_TZ = ZoneInfo("Europe/Moscow")
@@ -17,19 +24,24 @@ CHANNEL_ID = int(os.getenv("TARGET_CHAT_ID", "0"))
 
 async def handle_message(update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.channel_post or not update.channel_post.text:
+        print("Сообщение не содержит текста или не из channel_post")
         return
 
     text = update.channel_post.text.strip()
-    match_iter = re.finditer(r"([+-])(\d+)\s*(.*)", text)
-    for match in match_iter:
-        sign, amount_str, description = match.groups()
+    print(f"Получено сообщение: {text}")
+
+    match = re.match(r"([+-])(\d+)", text)
+    if match:
+        sign, amount_str = match.groups()
         amount = int(amount_str)
         if sign == '-':
             amount = -amount
-    # Можно сохранить description, например в отдельный словарь
-    _daily_totals[msg_date] += amount
-    print(f"Обработано сообщение: {text}")
-    print(f"Дата сообщения: {msg_date}, Сумма: {amount}")
+        msg_date = update.channel_post.date.astimezone(LOCAL_TZ).date()
+        logger.info(f"Дата сообщения: {msg_date}, Сумма: {amount}")
+        _daily_totals[msg_date] += amount
+        logger.info(f"Текущий итог на {msg_date}: {_daily_totals[msg_date]}")
+    else:
+        logger.info("Сообщение не попало под шаблон: ([+-])(\\d+)")
 
 
 async def send_summary() -> None:
@@ -52,7 +64,7 @@ def main() -> None:
     )
 
     scheduler = AsyncIOScheduler(timezone=LOCAL_TZ)
-    scheduler.add_job(send_summary, "cron", hour=18, minute=33)
+    scheduler.add_job(send_summary, "cron", hour=18, minute=45)
     scheduler.start()
 
     application.run_polling()
