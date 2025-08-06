@@ -53,9 +53,22 @@ async def handle_message(update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def send_summary() -> None:
     today = datetime.now(LOCAL_TZ).date()
-    total = _daily_totals.pop(today, 0)
-    if CHANNEL_ID != 0:
-        await application.bot.send_message(CHANNEL_ID, f"Итог за день: {total} {CHANNEL_ID}")
+    pool = getattr(application, 'bot_data', {}).get('pg_pool')
+    if pool is None:
+        if CHANNEL_ID != 0:
+            await application.bot.send_message(CHANNEL_ID, "Нет соединения с БД!")
+        return
+    try:
+        async with pool.acquire() as conn:
+            total = await conn.fetchval(
+                "SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE msg_date = $1",
+                today
+            )
+        if CHANNEL_ID != 0:
+            await application.bot.send_message(CHANNEL_ID, f"Итог за день: {total}")
+    except Exception as e:
+        if CHANNEL_ID != 0:
+            await application.bot.send_message(CHANNEL_ID, f"Ошибка получения итога из БД: {e}")
 
 
 def main() -> None:
