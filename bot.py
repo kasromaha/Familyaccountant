@@ -31,9 +31,8 @@ async def handle_message(update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if sign == '-':
             amount = -amount
         msg_date = update.channel_post.date.astimezone(LOCAL_TZ).date()
-        await context.bot.send_message(CHANNEL_ID, f"Дата сообщения: {msg_date}, Сумма: {amount}")
         _daily_totals[msg_date] += amount
-        await context.bot.send_message(CHANNEL_ID, f"Текущий итог на {msg_date}: {_daily_totals[msg_date]}")
+
 
         # Запись в PostgreSQL
         try:
@@ -92,7 +91,7 @@ def main() -> None:
     send_summary()
 
     scheduler = AsyncIOScheduler(timezone=LOCAL_TZ)
-    scheduler.add_job(send_summary, "cron", hour=19, minute=21)
+    scheduler.add_job(send_summary, "cron", hour=23, minute=59)
     scheduler.start()
 
     application.run_polling()
