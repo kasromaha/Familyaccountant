@@ -57,7 +57,7 @@ def main() -> None:
     )
 
     scheduler = AsyncIOScheduler(timezone=LOCAL_TZ)
-    scheduler.add_job(send_summary, "cron", hour=18, minute=45)
+    scheduler.add_job(send_summary, "cron", hour=18, minute=55)
     scheduler.start()
 
     application.run_polling()
