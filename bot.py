@@ -7,13 +7,6 @@ from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
-import logging
-
-logging.basicConfig(
-    level=logging.INFO,  # Можно поменять на DEBUG для подробных логов
-    format="%(asctime)s %(levelname)s %(message)s"
-)
-logger = logging.getLogger(__name__)
 
 # Totals keyed by message date
 LOCAL_TZ = ZoneInfo("Europe/Moscow")
@@ -37,11 +30,11 @@ async def handle_message(update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if sign == '-':
             amount = -amount
         msg_date = update.channel_post.date.astimezone(LOCAL_TZ).date()
-        logger.info(f"Дата сообщения: {msg_date}, Сумма: {amount}")
+        bot.send_message(CHANNEL_ID, f"Дата сообщения: {msg_date}, Сумма: {amount}")
         _daily_totals[msg_date] += amount
-        logger.info(f"Текущий итог на {msg_date}: {_daily_totals[msg_date]}")
+        bot.send_message(CHANNEL_ID, f"Текущий итог на {msg_date}: {_daily_totals[msg_date]}")
     else:
-        logger.info("Сообщение не попало под шаблон: ([+-])(\\d+)")
+        bot.send_message(CHANNEL_ID, f"Сообщение не попало под шаблон: ([+-])(\\d+)")
 
 
 async def send_summary() -> None:
