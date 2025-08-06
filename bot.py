@@ -51,7 +51,7 @@ async def handle_message(update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await context.bot.send_message(CHANNEL_ID, f"Сообщение не попало под шаблон: ([+-])(\\d+)")
 
 
-async def send_summary() -> None:
+async def send_summary(application) -> None:
     today = datetime.now(LOCAL_TZ).date()
     pool = getattr(application, 'bot_data', {}).get('pg_pool')
     if pool is None:
@@ -101,10 +101,12 @@ def main() -> None:
 
     application.post_init = setup_pg_pool
 
-    send_summary()
+    # Call summary with application
+    import asyncio
+    asyncio.run(send_summary(application))
 
     scheduler = AsyncIOScheduler(timezone=LOCAL_TZ)
-    scheduler.add_job(send_summary, "cron", hour=23, minute=59)
+    scheduler.add_job(send_summary, "cron", hour=21, minute=26, args=[application])
     scheduler.start()
 
     application.run_polling()
