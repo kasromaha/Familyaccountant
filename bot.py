@@ -18,14 +18,14 @@ async def handle_message(update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     text = update.channel_post.text.strip()
-    match = re.match(r"([+-])(\d+)", text)
-    if match:
-        sign, amount_str = match.groups()
+    match_iter = re.finditer(r"([+-])(\d+)\s*(.*)", text)
+    for match in match_iter:
+        sign, amount_str, description = match.groups()
         amount = int(amount_str)
         if sign == '-':
             amount = -amount
-        msg_date = update.channel_post.date.astimezone(LOCAL_TZ).date()
-        _daily_totals[msg_date] += amount
+    # Можно сохранить description, например в отдельный словарь
+    _daily_totals[msg_date] += amount
 
 
 async def send_summary() -> None:
@@ -48,7 +48,7 @@ def main() -> None:
     )
 
     scheduler = AsyncIOScheduler(timezone=LOCAL_TZ)
-    scheduler.add_job(send_summary, "cron", hour=14, minute=42)
+    scheduler.add_job(send_summary, "cron", hour=14, minute=53)
     scheduler.start()
 
     application.run_polling()
