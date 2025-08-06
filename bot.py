@@ -17,7 +17,7 @@ CHANNEL_ID = int(os.getenv("TARGET_CHAT_ID", "0"))
 
 async def handle_message(update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.channel_post or not update.channel_post.text:
-        print("Сообщение не содержит текста или не из channel_post")
+        bot.send_message(CHANNEL_ID, f"Сообщение не содержит текста или не из channel_post")
         return
 
     text = update.channel_post.text.strip()
@@ -57,7 +57,7 @@ def main() -> None:
     )
 
     scheduler = AsyncIOScheduler(timezone=LOCAL_TZ)
-    scheduler.add_job(send_summary, "cron", hour=18, minute=55)
+    scheduler.add_job(send_summary, "cron", hour=19, minute=2)
     scheduler.start()
 
     application.run_polling()
