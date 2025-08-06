@@ -28,6 +28,8 @@ async def handle_message(update, context: ContextTypes.DEFAULT_TYPE) -> None:
             amount = -amount
     # Можно сохранить description, например в отдельный словарь
     _daily_totals[msg_date] += amount
+    print(f"Обработано сообщение: {text}")
+    print(f"Дата сообщения: {msg_date}, Сумма: {amount}")
 
 
 async def send_summary() -> None:
@@ -50,7 +52,7 @@ def main() -> None:
     )
 
     scheduler = AsyncIOScheduler(timezone=LOCAL_TZ)
-    scheduler.add_job(send_summary, "cron", hour=18, minute=15)
+    scheduler.add_job(send_summary, "cron", hour=18, minute=33)
     scheduler.start()
 
     application.run_polling()
