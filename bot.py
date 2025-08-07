@@ -67,7 +67,7 @@ async def send_summary() -> None:
                 today
             )
         if ADMIN_ID != 0:
-            await application.bot.send_message(ADMIN_ID, f"Итог за день: {total}")
+            await application.bot.send_message(CHANNEL_ID, f"Итог за день: {total}")
     except Exception as e:
         if ADMIN_ID != 0:
             await application.bot.send_message(ADMIN_ID, f"Ошибка получения итога из БД: {e}")
