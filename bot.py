@@ -73,6 +73,11 @@ async def send_summary() -> None:
                 "SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE msg_date = $1",
                 today
             )
+            # Запись итога дня в таблицу daily_summary
+            await conn.execute(
+                "INSERT INTO daily_summary (summary_date, total) VALUES ($1, $2) ON CONFLICT (summary_date) DO UPDATE SET total = $2",
+                today, total
+            )
         if ADMIN_ID != 0:
             await application.bot.send_message(CHANNEL_ID, f"Итог за день: {total}")
     except Exception as e:
@@ -93,14 +98,19 @@ def main() -> None:
         if not pg_dsn:
             raise RuntimeError("POSTGRES_DSN is not set")
         pool = await asyncpg.create_pool(dsn=pg_dsn)
-        # Инициализация таблицы
+        # Инициализация таблиц
         async with pool.acquire() as conn:
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS expenses (
                     id SERIAL PRIMARY KEY,
                     amount INTEGER NOT NULL,
                     msg_date DATE NOT NULL
-                )
+                );
+                CREATE TABLE IF NOT EXISTS daily_summary (
+                    id SERIAL PRIMARY KEY,
+                    summary_date DATE NOT NULL UNIQUE,
+                    total INTEGER NOT NULL
+                );
             """)
         app.bot_data['pg_pool'] = pool
 
