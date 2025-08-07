@@ -1,13 +1,13 @@
 import os
 import re
 from collections import defaultdict
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
 
 
 import asyncpg
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes, CommandHandler
 
 # Totals keyed by message date
 LOCAL_TZ = ZoneInfo("Europe/Moscow")
@@ -85,6 +85,45 @@ async def send_summary() -> None:
             await application.bot.send_message(ADMIN_ID, f"Ошибка получения итога из БД: {e}")
 
 
+async def result_command(update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # Проверка, что запрос от ADMIN_ID
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("Нет доступа.")
+        return
+    args = context.args
+    if len(args) != 2:
+        await update.message.reply_text("Используйте: /result <начало> <конец> (например, /result 05.08.2025 07.08.2025)")
+        return
+    try:
+        start_date = datetime.strptime(args[0], "%d.%m.%Y").date()
+        end_date = datetime.strptime(args[1], "%d.%m.%Y").date()
+    except Exception:
+        await update.message.reply_text("Неверный формат дат. Используйте: /result 05.08.2025 07.08.2025")
+        return
+    pool = getattr(context.application, 'bot_data', {}).get('pg_pool')
+    if pool is None:
+        await update.message.reply_text("Нет соединения с БД!")
+        return
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute("SELECT 1")  # wake-up
+            rows = await conn.fetch(
+                "SELECT summary_date, total FROM daily_summary WHERE summary_date >= $1 AND summary_date <= $2 ORDER BY summary_date",
+                start_date, end_date
+            )
+        # Собрать результат с нулями для отсутствующих дат
+        result = ""
+        current = start_date
+        while current <= end_date:
+            found = next((r for r in rows if r["summary_date"] == current), None)
+            total = found["total"] if found else 0
+            result += f"{current.strftime('%d.%m.%Y')}: {total}\n"
+            current += timedelta(days=1)
+        await update.message.reply_text(result)
+    except Exception as e:
+        await update.message.reply_text(f"Ошибка получения результата: {e}")
+
+
 def main() -> None:
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not token:
@@ -117,6 +156,7 @@ def main() -> None:
     application.add_handler(
         MessageHandler(filters.ChatType.CHANNEL & filters.TEXT, handle_message)
     )
+    application.add_handler(CommandHandler("result", result_command))
 
     application.post_init = setup_pg_pool
 
