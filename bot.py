@@ -103,7 +103,7 @@ def main() -> None:
 
 
     scheduler = AsyncIOScheduler(timezone=LOCAL_TZ)
-    scheduler.add_job(send_summary, "cron", hour=23, minute=59)
+    scheduler.add_job(send_summary, "cron", hour=23, minute=50)
     scheduler.start()
 
     application.run_polling()
