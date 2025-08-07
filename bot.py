@@ -111,14 +111,17 @@ async def result_command(update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 "SELECT summary_date, total FROM daily_summary WHERE summary_date >= $1 AND summary_date <= $2 ORDER BY summary_date",
                 start_date, end_date
             )
-        # Собрать результат с нулями для отсутствующих дат
+        # Собрать результат с нулями для отсутствующих дат и итоговую сумму
         result = ""
+        total_sum = 0
         current = start_date
         while current <= end_date:
             found = next((r for r in rows if r["summary_date"] == current), None)
             total = found["total"] if found else 0
             result += f"{current.strftime('%d.%m.%Y')}: {total}\n"
+            total_sum += total
             current += timedelta(days=1)
+        result += f"\nИтог за период: {total_sum}"
         await update.message.reply_text(result)
     except Exception as e:
         await update.message.reply_text(f"Ошибка получения результата: {e}")
