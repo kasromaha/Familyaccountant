@@ -14,11 +14,11 @@ LOCAL_TZ = ZoneInfo("Europe/Moscow")
 _daily_totals: dict[date, int] = defaultdict(int)
 # Channel ID where summary will be posted
 CHANNEL_ID = int(os.getenv("TARGET_CHAT_ID", "0"))
-
+ADMIN_ID = int(os.getenv("ADMIN_CHAT_ID", "0"))
 
 async def handle_message(update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.channel_post or not update.channel_post.text:
-        await context.bot.send_message(CHANNEL_ID, f"Сообщение не содержит текста или не из channel_post")
+        await context.bot.send_message(ADMIN_ID, f"Сообщение не содержит текста или не из channel_post")
         return
 
     text = update.channel_post.text.strip()
@@ -38,7 +38,7 @@ async def handle_message(update, context: ContextTypes.DEFAULT_TYPE) -> None:
         try:
             pool = context.application.bot_data.get('pg_pool')
             if pool is None:
-                await context.bot.send_message(CHANNEL_ID, "Нет соединения с БД!")
+                await context.bot.send_message(ADMIN_ID, "Нет соединения с БД!")
             else:
                 async with pool.acquire() as conn:
                     await conn.execute("SELECT 1")  # wake-up
@@ -47,17 +47,17 @@ async def handle_message(update, context: ContextTypes.DEFAULT_TYPE) -> None:
                         amount, msg_date
                     )
         except Exception as e:
-            await context.bot.send_message(CHANNEL_ID, f"Ошибка записи в БД: {e}")
+            await context.bot.send_message(ADMIN_ID, f"Ошибка записи в БД: {e}")
     else:
-        await context.bot.send_message(CHANNEL_ID, f"Сообщение не попало под шаблон: ([+-])(\\d+)")
+        await context.bot.send_message(ADMIN_ID, f"Сообщение не попало под шаблон: ([+-])(\\d+)")
 
 
 async def send_summary() -> None:
     today = datetime.now(LOCAL_TZ).date()
     pool = getattr(application, 'bot_data', {}).get('pg_pool')
     if pool is None:
-        if CHANNEL_ID != 0:
-            await application.bot.send_message(CHANNEL_ID, "Нет соединения с БД!")
+        if ADMIN_ID != 0:
+            await application.bot.send_message(ADMIN_ID, "Нет соединения с БД!")
         return
     try:
         async with pool.acquire() as conn:
@@ -66,11 +66,11 @@ async def send_summary() -> None:
                 "SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE msg_date = $1",
                 today
             )
-        if CHANNEL_ID != 0:
-            await application.bot.send_message(CHANNEL_ID, f"Итог за день: {total}")
+        if ADMIN_ID != 0:
+            await application.bot.send_message(ADMIN_ID, f"Итог за день: {total}")
     except Exception as e:
-        if CHANNEL_ID != 0:
-            await application.bot.send_message(CHANNEL_ID, f"Ошибка получения итога из БД: {e}")
+        if ADMIN_ID != 0:
+            await application.bot.send_message(ADMIN_ID, f"Ошибка получения итога из БД: {e}")
 
 
 def main() -> None:
