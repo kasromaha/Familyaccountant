@@ -34,20 +34,27 @@ async def handle_message(update, context: ContextTypes.DEFAULT_TYPE) -> None:
         _daily_totals[msg_date] += amount
 
 
-        # Запись в PostgreSQL
-        try:
-            pool = context.application.bot_data.get('pg_pool')
-            if pool is None:
-                await context.bot.send_message(ADMIN_ID, "Нет соединения с БД!")
-            else:
+        # Запись в PostgreSQL с повторными попытками
+        for attempt in range(3):
+            try:
+                pool = context.application.bot_data.get('pg_pool')
+                if pool is None:
+                    await context.bot.send_message(ADMIN_ID, "Нет соединения с БД!")
+                    break
                 async with pool.acquire() as conn:
                     await conn.execute("SELECT 1")  # wake-up
                     await conn.execute(
                         "INSERT INTO expenses (amount, msg_date) VALUES ($1, $2)",
                         amount, msg_date
                     )
-        except Exception as e:
-            await context.bot.send_message(ADMIN_ID, f"Ошибка записи в БД: {e}")
+                break  # успех, выходим из цикла
+            except Exception as e:
+                if attempt < 2:
+                    await context.bot.send_message(ADMIN_ID, f"Ошибка записи в БД (попытка {attempt+1}): {e}. Пробую ещё раз...")
+                    import asyncio
+                    await asyncio.sleep(5)
+                else:
+                    await context.bot.send_message(ADMIN_ID, f"Ошибка записи в БД: {e}")
     else:
         await context.bot.send_message(ADMIN_ID, f"Сообщение не попало под шаблон: ([+-])(\\d+)")
 
