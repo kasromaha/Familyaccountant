@@ -41,6 +41,7 @@ async def handle_message(update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 await context.bot.send_message(CHANNEL_ID, "Нет соединения с БД!")
             else:
                 async with pool.acquire() as conn:
+                    await conn.execute("SELECT 1")  # wake-up
                     await conn.execute(
                         "INSERT INTO expenses (amount, msg_date) VALUES ($1, $2)",
                         amount, msg_date
@@ -60,6 +61,7 @@ async def send_summary() -> None:
         return
     try:
         async with pool.acquire() as conn:
+            await conn.execute("SELECT 1")  # wake-up
             total = await conn.fetchval(
                 "SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE msg_date = $1",
                 today
