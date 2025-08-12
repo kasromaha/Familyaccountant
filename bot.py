@@ -127,6 +127,41 @@ async def result_command(update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text(f"Ошибка получения результата: {e}")
 
 
+async def sync_summary_command(update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # Только для ADMIN_ID
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("Нет доступа.")
+        return
+    pool = getattr(context.application, 'bot_data', {}).get('pg_pool')
+    if pool is None:
+        await update.message.reply_text("Нет соединения с БД!")
+        return
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute("SELECT 1")  # wake-up
+            # Получить все даты из expenses
+            dates = await conn.fetch("SELECT DISTINCT msg_date FROM expenses")
+            # Получить уже внесённые даты из daily_summary
+            summary_dates = await conn.fetch("SELECT summary_date FROM daily_summary")
+            summary_dates_set = set(r["summary_date"] for r in summary_dates)
+            count = 0
+            for d in dates:
+                date_val = d["msg_date"]
+                if date_val not in summary_dates_set:
+                    total = await conn.fetchval(
+                        "SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE msg_date = $1",
+                        date_val
+                    )
+                    await conn.execute(
+                        "INSERT INTO daily_summary (summary_date, total) VALUES ($1, $2)",
+                        date_val, total
+                    )
+                    count += 1
+        await update.message.reply_text(f"Синхронизация завершена. Добавлено итогов: {count}")
+    except Exception as e:
+        await update.message.reply_text(f"Ошибка синхронизации: {e}")
+
+
 def main() -> None:
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not token:
@@ -160,6 +195,7 @@ def main() -> None:
         MessageHandler(filters.ChatType.CHANNEL & filters.TEXT, handle_message)
     )
     application.add_handler(CommandHandler("result", result_command))
+    application.add_handler(CommandHandler("sync_summary", sync_summary_command))
 
     application.post_init = setup_pg_pool
 
